@@ -1,0 +1,80 @@
+Image Procesor Installation
+======================================================
+Step 01 : composer require intervention/image
+
+Step 02 : Providers & Alias
+          Intervention\Image\ImageServiceProvider::class
+          'Image' => Intervention\Image\Facades\Image::class
+
+Step 03 : php artisan vendor:publish --provider="Intervention\Image\ImageServiceProviderLaravelRecent"
+
+usage:
+<?php
+
+namespace App\Http\Traits;
+
+use Intervention\Image\Facades\Image;
+
+/**
+ * Trait is used to resize uploaded images to different sizes and 
+ * generate webp images of curresponding images.
+ */
+trait ImagerTrait
+{
+    public $coverImageSizes = [
+        'medium' => [400, 300],
+        'small' => [300, 225]
+    ];
+    public $bannerImageSizes = [
+        'medium' => [1200, 600],
+        'small' => [998, 500],
+        'extra-small' => [768, 450],
+        'tiny' => [450, 320]
+    ];
+    /**
+     * Resize the uploading image to different size
+     * 
+     * @param string $image 
+     * @param string $type       type of the image
+     * @param string $uploadPath path to image upload folder
+     *
+     * @return string
+     */
+    public function resizeImage($image, $type, $uploadPath)
+    {
+        $imageSizes = '';
+        if ($type === 'cover-image') {
+            $imageSizes = $this->coverImageSizes;
+        } else if ($type === 'banner-image') {
+            $imageSizes = $this->bannerImageSizes;
+        }
+        $name = uniqid();
+        $img = Image::make($image);
+        $img->backup();
+
+        $img->reset();
+        $img->save(public_path($uploadPath . '/' . $name . '.jpg'));
+        $img->encode('webp')
+            ->save(public_path($uploadPath . '/' . $name . '.webp'), 50);
+        $img->reset();
+        foreach ($imageSizes as $size => $values) {
+            list($width, $height) = $values;
+            $img->resize($width, null, function ($constraint) {
+                $constraint->aspectRatio();
+            });
+            $img->save(
+                public_path($uploadPath . '/' . $name . '-' . $size . '.jpg')
+            );
+            $img->encode('webp')
+                ->save(
+                    public_path($uploadPath . '/' . $name . '-' . $size . '.webp'),
+                    50
+                );
+            $img->reset();
+        }
+
+        unlink($image);
+
+        return $name;
+    }
+}

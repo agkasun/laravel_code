@@ -1,0 +1,31 @@
+Instead, I would simply uncomment this line in app/Providers/RouteServiceProvider.php which will revert back to the Laravel <8 behavior of automatically prefixing 
+route declarations in 'routes/web.php' 'routes/api.php' with the App\Http\Controllers namespace.
+
+
+
+/**
+ * The controller namespace for the application.
+ *
+ * When present, controller route declarations will automatically be prefixed with this namespace.
+ *
+ * @var string|null
+ */
+ protected $namespace = 'App\\Http\\Controllers';
+ 
+ 
+ public function boot()
+{
+    $this->configureRateLimiting();
+
+    $this->routes(function () {
+        Route::prefix('api')
+            ->middleware('api')
+            ->namespace($this->namespace)           // make sure this is present
+            ->group(base_path('routes/api.php'));
+
+        Route::middleware('web')
+            ->namespace($this->namespace)            // make sure this is present
+            ->group(base_path('routes/web.php'));
+    });
+}
+ 
